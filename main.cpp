@@ -45,6 +45,49 @@ bool isValid(int r, int c, const vector<vector<Cell>>& grid, const vector<vector
     return r >= 0 && r < (int)grid.size() && c >= 0 && c < (int)grid[0].size() && grid[r][c] != WALL && !visited[r][c];
 }
 
+void bfsGraph(int start, const vector<vector<pair<int, int>>>& adj, int n) {
+    vector<bool> visited(n, false);
+    queue<int> q;
+    q.push(start);
+    visited[start] = true;
+    cout << "BFS: ";
+    while (!q.empty()) {
+        int node = q.front(); q.pop();
+        cout << node << ' ';
+        for (auto [neigh, _] : adj[node]) {
+            if (!visited[neigh]) {
+                visited[neigh] = true;
+                q.push(neigh);
+            }
+        }
+    }
+    cout << '\n';
+}
+
+void dfsGraphUtil(int node, const vector<vector<pair<int, int>>>& adj, vector<bool>& visited) {
+    visited[node] = true;
+    cout << node << ' ';
+    for (auto [neigh, _] : adj[node]) {
+        if (!visited[neigh]) dfsGraphUtil(neigh, adj, visited);
+    }
+}
+
+void dfsGraph(int start, const vector<vector<pair<int, int>>>& adj, int n) {
+    vector<bool> visited(n, false);
+    cout << "DFS: ";
+    dfsGraphUtil(start, adj, visited);
+    cout << '\n';
+}
+
+void printGraphEdges(const vector<vector<pair<int, int>>>& adj) {
+    cout << "Graph Edges:\n";
+    for (int u = 0; u < (int)adj.size(); ++u) {
+        for (auto [v, w] : adj[u]) {
+            cout << u << " -> " << v << " (weight: " << w << ")\n";
+        }
+    }
+}
+
 void bfs(vector<vector<Cell>>& grid, pair<int, int> start, pair<int, int> goal) {
     int R = grid.size(), C = grid[0].size();
     queue<pair<int, int>> q;
@@ -147,15 +190,15 @@ void banner() {
         clearScreen();
         setColor(14);
         cout << "\n\n           " << spinner[i % 4] << " WELCOME TO ";
-        cout << "PATHFINDER 1.0 " << spinner[i % 4] << "\n";
+        cout << "TheAlgoTerminal 1.0 " << spinner[i % 4] << "\n";
         setColor(7);
         Sleep(100);
     }
     clearScreen();
     setColor(11);
-    cout << "==============================\n";
-    cout << "   Welcome to Pathfinder 1.0   \n";
-    cout << "==============================\n";
+    cout << "====================================\n";
+    cout << "   Welcome to TheAlgoTerminal 1.0   \n";
+    cout << "====================================\n";
     setColor(7);
 }
 
@@ -172,39 +215,105 @@ int graphsMenu() {
 }
 
 void nodesEdgesDemo() {
-    cout << "\n--- Nodes & Edges ---\n";
+    cout << "--- Nodes & Edges ---\n";
+    bool directed;
+    cout << "Is the graph directed? (1 for Yes, 0 for No): ";
+    cin >> directed;
+
     int n, e; cout << "Enter number of nodes: "; cin >> n;
     cout << "Enter number of edges: "; cin >> e;
-    vector<vector<int>> adj(n);
-    cout << "Enter edges (u v) 0-based:\n";
-    for (int i = 0; i < e; ++i) {
-        int u, v; cin >> u >> v;
-        adj[u].push_back(v);
-        adj[v].push_back(u);
+    vector<vector<pair<int, int>>> adj(n);
+    cout << "Enter edges in format (u v w), u to v with weight w:\n";
+    for (int i = 0; i < e; ) {
+        int u, v, w; cin >> u >> v >> w;
+        if (u < 0 || v < 0 || u >= n || v >= n) {
+            cout << "Invalid edge: (" << u << ", " << v << ") — node out of bounds. Try again.\n";
+            continue;
+        }
+        adj[u].push_back({v, w});
+        if (!directed) adj[v].push_back({u, w});
+        ++i;
     }
-    cout << "Adjacency List:\n";
+
+    cout << "\nAdjacency List:\n";
     for (int i = 0; i < n; ++i) {
         cout << i << ":";
-        for (int v : adj[i]) cout << " " << v;
+        for (auto [v, w] : adj[i]) cout << " (" << v << ", w=" << w << ")";
         cout << "\n";
     }
-    cout << "Press Enter to continue..."; cin.ignore(); cin.get();
+
+    int choice, src;
+    while (true) {
+        cout << "\nOptions:\n1. Print Graph (Edges)\n2. BFS\n3. DFS\n4. Back\nChoice: ";
+        cin >> choice;
+        if (choice == 4) break;
+        if (choice == 1) {
+            printGraphEdges(adj);
+            continue;
+        }
+        cout << "Enter starting node: ";
+        cin >> src;
+        if (src < 0 || src >= n) {
+            cout << "Invalid source node. Try again.\n";
+            continue;
+        }
+        if (choice == 2) bfsGraph(src, adj, n);
+        else if (choice == 3) dfsGraph(src, adj, n);
+        else cout << "Invalid option.\n";
+    }
 }
 
 void visualizeGraph() {
-    cout << "\n--- Grid Path-finding ---\n";
+    cout << "--- Grid Path-finding ---\n";
     int R, C; cout << "Rows: "; cin >> R; cout << "Cols: "; cin >> C;
-    vector<vector<Cell>> grid(R, vector<Cell>(C, EMPTY));
-    pair<int, int> s{-1, -1}, g{-1, -1};
-    while (!parseGrid(grid, s, g, R, C)) {
-        cout << "Try again...\n";
+
+    while (true) {
+        vector<vector<Cell>> grid(R, vector<Cell>(C, EMPTY));
+        pair<int, int> s{-1, -1}, g{-1, -1};
+
+        cout << "1. Custom Input\n"; 
+        cout << "2. Generate Random Grid\n";
+        cout << "3. Go Back\n";
+        cout << "Choice: ";
+        int opt; cin >> opt;
+
+        if (opt == 3) break;
+
+        if (opt == 1) {
+            cin.ignore();
+            while (!parseGrid(grid, s, g, R, C)) {
+                cout << "Try again...\n";
+            }
+        } else {
+            srand(time(0));
+            for (int r = 0; r < R; ++r) {
+                for (int c = 0; c < C; ++c) {
+                    int rnd = rand() % 100;
+                    if (rnd < 20) grid[r][c] = WALL;
+                    else grid[r][c] = EMPTY;
+                }
+            }
+            do { s = {rand() % R, rand() % C}; } while (grid[s.first][s.second] == WALL);
+            do { g = {rand() % R, rand() % C}; } while (grid[g.first][g.second] == WALL || g == s);
+            grid[s.first][s.second] = START;
+            grid[g.first][g.second] = GOAL;
+        }
+
+        while (true) {
+            clearScreen(); printGrid(grid);
+            cout << "\nAlgorithm: 1.BFS 2.A* 3.Regenerate Grid 4.Back\nChoice: ";
+            int ch; cin >> ch;
+            if (ch == 3) break;
+            if (ch == 4) return;
+            auto tempGrid = grid;
+            auto t0 = chrono::high_resolution_clock::now();
+            if (ch == 1) bfs(tempGrid, s, g);
+            else if (ch == 2) aStar(tempGrid, s, g);
+            auto t1 = chrono::high_resolution_clock::now();
+            cout << "\nTime taken: " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << " ms\n";
+            cout << "Press Enter to try again or choose another algorithm..."; cin.ignore(); cin.get();
+        }
     }
-    cout << "Algorithm: 1.BFS 2.A*: "; int ch; cin >> ch;
-    auto t0 = chrono::high_resolution_clock::now();
-    if (ch == 1) bfs(grid, s, g); else aStar(grid, s, g);
-    auto t1 = chrono::high_resolution_clock::now();
-    cout << "\nTime taken: " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count() << " ms\n";
-    cout << "Press Enter to return to menu..."; cin.ignore(); cin.get();
 }
 
 int main() {
